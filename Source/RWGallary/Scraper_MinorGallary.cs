@@ -114,7 +114,7 @@ namespace RWGallary
                 }
             }
 
-            if (!string.IsNullOrEmpty(imageUrl))
+            if (Settings.LoadImages && !string.IsNullOrEmpty(imageUrl))
             {
                 t = await DownloadImage(imageUrl);
             }

@@ -16,6 +16,7 @@ namespace RWGallary
     {
         private CustomLetter _letter;
         private DateTime _prevTime;
+        private TimeSpan _nextTime;
         private Scraper _scraper;
         private bool _isProcessingThreadedWork;
 
@@ -26,6 +27,7 @@ namespace RWGallary
         {
             InitScraper();
             _prevTime = DateTime.Now;
+            _nextTime = TimeSpan.FromSeconds(Rand.Range(Settings.MinFrequency, Settings.MaxFrequency));
             _isProcessingThreadedWork = false;
             _isComnsConsoleWorking = false;
             _needToInitScraper = false;
@@ -43,9 +45,10 @@ namespace RWGallary
                 }
 
                 var now = DateTime.Now;
-                if (!_isProcessingThreadedWork && (now - _prevTime) > TimeSpan.FromSeconds(1d))
+                if (!_isProcessingThreadedWork && (now - _prevTime) > _nextTime)
                 {
                     _prevTime = now;
+                    _nextTime = TimeSpan.FromSeconds(Rand.Range(Settings.MinFrequency, Settings.MaxFrequency));
 
                     if (_needToInitScraper == true)
                     {
@@ -79,7 +82,7 @@ namespace RWGallary
                     CustomLetter.MakeLetter(letterLabel, letterText, sourceUrl, LetterDefOf.NeutralEvent, image);
                 SendLetterToMainThread(letter);
 
-                await Task.Delay(Rand.Range(Settings.MinFrequency, Settings.MaxFrequency) * 1000);
+                await Task.Delay(100);
             }
             else if (!_scraper.HasPost && !_scraper.IsScraping)
             {
