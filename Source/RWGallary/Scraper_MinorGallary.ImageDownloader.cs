@@ -77,8 +77,8 @@ namespace RWGallary
                     }
                     if (textureRequest.isNetworkError || textureRequest.isHttpError)
                     {
-                        Log.Message($"변방계 라디오: Error on Scraper_MinorGallary.DownloadImage() => Image from {tmpImagePath}:{textureRequest.error}");
-                        await Task.Delay(100000);
+                        Log.Message($"변방계 라디오: Error on {Utils.GetCurStack()} => Image from {tmpImagePath}:{textureRequest.error}");
+                        await Task.Delay(1000);
                     }
                     else
                     {
@@ -93,7 +93,7 @@ namespace RWGallary
             }
             catch (Exception e)
             {
-                Log.Message($"변방계 라디오: Error on Scraper_MinorGallary.DownloadImage() => {e.Message}");
+                Log.Message($"변방계 라디오: Error on {Utils.GetCurStack()} => {e.Message}");
             }
 
             return null;

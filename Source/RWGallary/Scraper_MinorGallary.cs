@@ -26,6 +26,10 @@ namespace RWGallary
         internal string _listUrl;
         internal string _postUrl;
         protected readonly string _gallaryName;
+
+        protected virtual string ListUrl => _listUrl;
+        protected virtual string GallaryName => _gallaryName;
+
         public Scraper_MinorGallary(string gallaryName)
         {
             _gallaryName = gallaryName;
@@ -50,7 +54,7 @@ namespace RWGallary
             int targetPostNum = -1;
             string title = null, context = null;
             Texture2D t = null;
-            using (UnityWebRequest request = UnityWebRequest.Get(_listUrl))
+            using (UnityWebRequest request = UnityWebRequest.Get(ListUrl))
             {
                 request.SetRequestHeader("User-Agent", GetRandomUserAgent());
                 var asyncOperation = request.SendWebRequest();
@@ -61,7 +65,7 @@ namespace RWGallary
 
                 if (request.isNetworkError || request.isHttpError)
                 {
-                    Log.Message($"변방계 라디오: Error on Scraper_MinorGallary.ScrapePost() => {_listUrl}:{request.error}");
+                    Log.Message($"변방계 라디오: Error on {Utils.GetCurStack()} => {ListUrl}:{request.error}");
                     await Task.Delay(1000);
                     return;
                 }
@@ -73,7 +77,7 @@ namespace RWGallary
                 }
             }
 
-            _postUrl = string.Format(postUrlFormat, _gallaryName, targetPostNum);
+            _postUrl = string.Format(postUrlFormat, GallaryName, targetPostNum);
             var imageUrl = string.Empty;
             if (targetPostNum != -1)
             {
@@ -88,7 +92,7 @@ namespace RWGallary
 
                     if (request.isNetworkError || request.isHttpError)
                     {
-                        Log.Message($"변방계 라디오: Error on Scraper_MinorGallary.ScrapePost() => {_postUrl}:{request.error}");
+                        Log.Message($"변방계 라디오: Error on {Utils.GetCurStack()} => {_postUrl}:{request.error}");
                         await Task.Delay(1000);
                         return;
                     }
@@ -101,7 +105,7 @@ namespace RWGallary
                     }
                 }
 
-                var comments = await GetComments(_gallaryName, targetPostNum.ToString());
+                var comments = await GetComments(GallaryName, targetPostNum.ToString());
                 if (comments?.Count > 0)
                 {
                     var sb = new StringBuilder();
@@ -126,7 +130,7 @@ namespace RWGallary
             else
             {
                 Log.Message(
-                    $"변방계 라디오: on Scraper_MinorGallary.ScrapePost() => {_postUrl} has no title or context, returns no post");
+                    $"변방계 라디오: on {Utils.GetCurStack()} => {_postUrl} has no title or context, returns no post");
             }
 
             IsScraping = false;
@@ -158,7 +162,7 @@ namespace RWGallary
             }
             catch (Exception e)
             {
-                Log.Warning("변방계 라디오: Error on Scraper_MinorGallary.ParseTargetPostNum() => " + e.Message);
+                Log.Warning($"변방계 라디오: Error on {Utils.GetCurStack()} => " + e.Message);
             }
 
             return Task.FromResult(-1);
@@ -201,7 +205,7 @@ namespace RWGallary
             }
             catch (Exception e)
             {
-                Log.Warning("변방계 라디오: Error on Scraper_MinorGallary.ParsePost() => " + e.Message);
+                Log.Warning($"변방계 라디오: Error on {Utils.GetCurStack()} => " + e.Message);
             }
 
             return Task.FromResult((Tuple<string, string>)null);

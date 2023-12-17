@@ -34,7 +34,7 @@ namespace RWGallary
                     }
                     if (request.isNetworkError || request.isHttpError)
                     {
-                        Log.Message($"변방계 라디오: Error on Scraper_MinorGallary.GetComments() => {id},{no}:{request.error}");
+                        Log.Message($"변방계 라디오: Error on {Utils.GetCurStack()} => {id},{no}:{request.error}");
                         await Task.Delay(1000);
                     }
                     else

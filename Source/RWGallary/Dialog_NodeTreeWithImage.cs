@@ -69,10 +69,10 @@ namespace RWGallary
             Rect rectTexture = new Rect(0.0f, 0.0f, (image?.width ?? 0f), (image?.height ?? 0f));
             if (image != null)
             {
-                float multiplier =
-                    ((double)rectTexture.width / rectTexture.height >= (double)width / (rect.height - num)
-                        ? width / rectTexture.width
-                        : width / (rectTexture.height - num));
+                float multiplier = width / rectTexture.width;
+                    //((double)rectTexture.width / rectTexture.height >= (double)width / (rect.height - num)
+                    //    ? width / rectTexture.width
+                    //    : width / (rectTexture.height - num));
                 rectTexture.width *= multiplier;
                 rectTexture.height *= multiplier;
                 //rectTexture.x = (float)(rect.x + rect.width / 2.0 - rectTexture.width / 2.0);

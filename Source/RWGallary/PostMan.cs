@@ -77,7 +77,7 @@ namespace RWGallary
             {
                 var (title, context, sourceUrl, image) = tuple;
                 var letterLabel = title.Length > 20 ? title.Substring(0, 17) + "..." : title;
-                var letterText = $"<size=14><color=#3399FF>{title}</color></size>" + (context.Length > 0 ? $"\n<size=14>{context}</size>" : "");
+                var letterText = $"<color=#3399FF>{title}</color>\n" + context;
                 var letter =
                     CustomLetter.MakeLetter(letterLabel, letterText, sourceUrl, LetterDefOf.NeutralEvent, image);
                 SendLetterToMainThread(letter);

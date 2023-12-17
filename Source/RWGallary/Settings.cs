@@ -120,7 +120,10 @@ namespace RWGallary
                         () =>
                         {
                             ScraperType = current;
-                            // TODO: 인게임이면 바로 변경
+                            if (ScraperType.Name.Contains("Multi"))
+                            {
+                                Messages.Message("다중 방식을 선택하였습니다. 갤러리 주소 창에 ','로 구분하여 여러 갤러리 주소를 적어주세요.", MessageTypeDefOf.CautionInput);
+                            }
                         })).ToList();
 
                 Find.WindowStack.Add(new FloatMenu(list));
