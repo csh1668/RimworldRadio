@@ -37,7 +37,7 @@ using Verse;
 
 namespace RWGallary
 {
-    public partial class Scraper_MinorGallary
+    public partial class Scraper_DcInside
     {
         protected static async Task<Texture2D> DownloadImage(string url)
         {

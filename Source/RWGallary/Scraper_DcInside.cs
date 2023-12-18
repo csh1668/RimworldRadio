@@ -16,25 +16,62 @@ using Verse;
 namespace RWGallary
 {
 
-    [ScraperDescription("마이너 갤러리")]
-    public partial class Scraper_MinorGallary : Scraper
+    [ScraperDescription("디시인사이드")]
+    public partial class Scraper_DcInside : Scraper
     {
         protected const string imageUrlFormat = "https://image.dcinside.com/viewimage.php?{0}";
-
-        protected string postUrlFormat = "https://gall.dcinside.com/mgallery/board/view/?id={0}&no={1}";
+        protected const string listUrlRegularFormat = "https://gall.dcinside.com/board/lists?id={0}";
+        protected const string listUrlMinorFormat = "https://gall.dcinside.com/mgallery/board/lists/?id={0}";
+        protected const string postUrlRegularFormat = "https://gall.dcinside.com/board/view/?id={0}&no={1}";
+        protected const string postUrlMinorFormat = "https://gall.dcinside.com/mgallery/board/view/?id={0}&no={1}";
+        protected const string postfixRecommend = "&exception_mode=recommend";
 
         internal string _listUrl;
         internal string _postUrl;
-        protected readonly string _gallaryName;
+        protected List<string> _gallaryNames = new List<string>();
+        protected readonly bool _onlyRecommend;
+        protected readonly bool _isMinor;
 
-        protected virtual string ListUrl => _listUrl;
-        protected virtual string GallaryName => _gallaryName;
+        protected int idx;
 
-        public Scraper_MinorGallary(string gallaryName)
+        protected virtual string ListUrl
         {
-            _gallaryName = gallaryName;
-            // 정규갤인지 마갤인지 구별할 필요가 있다
-            _listUrl = "https://gall.dcinside.com/mgallery/board/lists/?id=" + gallaryName;
+            get
+            {
+                if (_isMinor)
+                {
+                    if (_onlyRecommend)
+                        return string.Format(listUrlMinorFormat, GallaryName) + postfixRecommend;
+                    else
+                        return string.Format(listUrlMinorFormat, GallaryName);
+                }
+                else
+                {
+                    if (_onlyRecommend)
+                        return string.Format(listUrlRegularFormat, GallaryName) + postfixRecommend;
+                    else
+                        return string.Format(listUrlRegularFormat, GallaryName);
+                }
+            }
+        }
+
+        protected virtual string GallaryName
+        {
+            get
+            {
+                if (idx == -1)
+                    idx = Rand.Range(0, _gallaryNames.Count);
+                return _gallaryNames[idx];
+            }
+        }
+
+        public Scraper_DcInside(string gallaryNames, bool isMinor, bool onlyRecommend)
+        {
+            idx = -1;
+            _gallaryNames.AddRange(gallaryNames.Split(',').Select(x => x.Trim()));
+            _isMinor = isMinor;
+            _onlyRecommend = onlyRecommend;
+            _listUrl = "https://gall.dcinside.com/mgallery/board/lists/?id=" + gallaryNames;
         }
 
         protected static string GetRandomUserAgent()
@@ -51,6 +88,8 @@ namespace RWGallary
         public override async Task ScrapePost()
         {
             IsScraping = true;
+            idx = -1;
+
             int targetPostNum = -1;
             string title = null, context = null;
             Texture2D t = null;
@@ -77,7 +116,7 @@ namespace RWGallary
                 }
             }
 
-            _postUrl = string.Format(postUrlFormat, GallaryName, targetPostNum);
+            _postUrl = string.Format(_isMinor ? postUrlMinorFormat : postUrlRegularFormat, GallaryName, targetPostNum);
             var imageUrl = string.Empty;
             if (targetPostNum != -1)
             {

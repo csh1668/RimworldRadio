@@ -27,7 +27,7 @@ namespace RWGallary
         {
             InitScraper();
             _prevTime = DateTime.Now;
-            _nextTime = TimeSpan.FromSeconds(Rand.Range(Settings.MinFrequency, Settings.MaxFrequency));
+            _nextTime = TimeSpan.FromSeconds(Settings.EarlyFirstLetter ? Rand.Range(30, 60) : Rand.Range(Settings.MinFrequency, Settings.MaxFrequency));
             _isProcessingThreadedWork = false;
             _isComnsConsoleWorking = false;
             _needToInitScraper = false;
@@ -94,7 +94,7 @@ namespace RWGallary
 
         private void InitScraper()
         {
-            _scraper = (Scraper)Activator.CreateInstance(Settings.ScraperType, Settings.GallaryName);
+            _scraper = Scraper.GetScraper();
         }
 
         internal void SendLetterToMainThread(CustomLetter letter) => _letter = letter;

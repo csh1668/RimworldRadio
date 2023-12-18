@@ -88,16 +88,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Scraper.cs" />
     <Compile Include="ScraperDescriptionAttribute.cs" />
-    <Compile Include="Scraper_Gallary.cs" />
-    <Compile Include="Scraper_Gallary_Multi.cs" />
-    <Compile Include="Scraper_Gallary_Multi_Recommend.cs" />
-    <Compile Include="Scraper_Gallary_Recommend.cs" />
-    <Compile Include="Scraper_MinorGallary.CommentModule.cs" />
-    <Compile Include="Scraper_MinorGallary.cs" />
-    <Compile Include="Scraper_MinorGallary.ImageDownloader.cs" />
-    <Compile Include="Scraper_MinorGallary_Multi.cs" />
-    <Compile Include="Scraper_MinorGallary_Multi_Recommend.cs" />
-    <Compile Include="Scraper_MinorGallary_Recommend.cs" />
+    <Compile Include="Scraper_DcInside.CommentModule.cs" />
+    <Compile Include="Scraper_DcInside.cs" />
+    <Compile Include="Scraper_DcInside.ImageDownloader.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="Utils.cs" />
   </ItemGroup>

@@ -11,7 +11,7 @@ using Verse;
 
 namespace RWGallary
 {
-    public partial class Scraper_MinorGallary
+    public partial class Scraper_DcInside
     {
         protected static async Task<List<string>> GetComments(string id, string no, int maxCount = 20)
         {

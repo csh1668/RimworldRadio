@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using RimWorld;
 using UnityEngine;
 using UnityEngine.Diagnostics;
 using Verse;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace RWGallary
 {
@@ -18,15 +20,17 @@ namespace RWGallary
         public static bool RequiresCommsConsole = false;
         public static int RefreshComnsConsoleCheckTick = 900;
 
+        public static Type ScraperType = typeof(Scraper_DcInside);
         public static string GallaryName = "rimworld";
         public static bool LoadImages = false;
-        public static Type ScraperType = typeof(Scraper_MinorGallary);
+        public static bool ScrapeOnlyRecommend = false;
+        public static bool ScrapeMinorGallery = true;
 
         public static bool PauseWhenOpenMessage = false;
+        public static bool EarlyFirstLetter = true;
         public static int MinFrequency = 60 * 10;
         public static int MaxFrequency = 60 * 20;
 
-        public static Dictionary<string, Tuple<Action<object>, Action<object>>> DynamicGeneratedOptions = new Dictionary<string, Tuple<Action<object>, Action<object>>>();
 
         private static List<Type> Scrapers = new List<Type>();
 
@@ -39,16 +43,35 @@ namespace RWGallary
             
             Scribe_Values.Look(ref GallaryName, "RWGall_GallaryName", "rimworld");
             Scribe_Values.Look(ref LoadImages, "RWGall_LoadImages", false);
+            Scribe_Values.Look(ref ScrapeOnlyRecommend, "RWGall_ScrapeOnlyRecommend", false);
+            Scribe_Values.Look(ref ScrapeMinorGallery, "RWGall_ScrapeMinorGallery", true);
 
             var scraperTypeTmp = (string)ScraperType.Name.Clone();
-            Scribe_Values.Look(ref scraperTypeTmp, "RWGall_ScraperTypeName", "Scraper_MinorGallary");
+            Scribe_Values.Look(ref scraperTypeTmp, "RWGall_ScraperTypeName", "Scraper_DcInside");
             foreach (var scraper in Scrapers)
             {
+                //구버전 호환성
+                if (scraperTypeTmp.Contains("Gallary"))
+                {
+                    ScraperType = typeof(Scraper_DcInside);
+                    if (scraperTypeTmp.Contains("Recommend"))
+                        ScrapeOnlyRecommend = true;
+                    if (scraperTypeTmp.Contains("Minor"))
+                    {
+                        ScrapeMinorGallery = true;
+                    }
+                    else
+                    {
+                        ScrapeMinorGallery = false;
+                    }
+                }
+
                 if (scraper.Name == scraperTypeTmp)
                     ScraperType = scraper;
             }
 
             Scribe_Values.Look(ref PauseWhenOpenMessage, "RWGall_PauseWhenOpenMessage", false);
+            Scribe_Values.Look(ref EarlyFirstLetter, "RWGall_EarlyFirstLetter", true);
             Scribe_Values.Look(ref MinFrequency, "RWGall_MinFrequency", 60 * 10);
             Scribe_Values.Look(ref MaxFrequency, "RWGall_MaxFrequency", 60 * 20);
         }
@@ -56,19 +79,7 @@ namespace RWGallary
         public static void InitSettings()
         {
             Scrapers.Clear();
-            DynamicGeneratedOptions.Clear();
-
             Scrapers.AddRange(GenTypes.AllTypes.Where(x => !x.IsAbstract && x.IsSubclassOf(typeof(Scraper))));
-
-            //foreach (var scraper in Scrapers)
-            //{
-            //    var ctor = scraper.GetConstructors(BindingFlags.Instance | BindingFlags.Public).First();
-            //    foreach (var pInfo in ctor.GetParameters())
-            //    {
-            //        DynamicGeneratedOptions[$"LEFT|{pInfo.ParameterType.Name}|{scraper.Name}|{pInfo.Name}"] =
-            //            pInfo.HasDefaultValue ? pInfo.DefaultValue : null;
-            //    }
-            //}
         }
 
         public static void DoSettingsWindowContents(Rect rect)
@@ -110,7 +121,7 @@ namespace RWGallary
             ls.Begin(rect);
 
             ls.Label("스크래핑 설정");
-            ls.Label("스크래핑 모듈 선택 (기본: 마이너 갤러리): ", tooltip:"글을 퍼오는 방식을 정합니다.");
+            ls.Label("스크래핑 모듈 선택 (기본: 디시인사이드): ", tooltip:"글을 퍼오는 곳을 정합니다.");
             if (Widgets.ButtonText(ls.GetRect(28f), 
                     ScraperType.GetCustomAttribute<ScraperDescriptionAttribute>()?.description ?? ScraperType.Name))
             {
@@ -120,19 +131,27 @@ namespace RWGallary
                         () =>
                         {
                             ScraperType = current;
-                            if (ScraperType.Name.Contains("Multi"))
-                            {
-                                Messages.Message("다중 방식을 선택하였습니다. 갤러리 주소 창에 ','로 구분하여 여러 갤러리 주소를 적어주세요.", MessageTypeDefOf.CautionInput);
-                            }
                         })).ToList();
-
                 Find.WindowStack.Add(new FloatMenu(list));
             }
 
-            GallaryName = ls.TextEntryLabeled("갤러리 주소 (기본: rimworld): ", GallaryName);
+            DrawDcInsideSettings(ls);
+
+            ls.CheckboxLabeled("이미지 불러오기 (기본: X)", ref LoadImages, "글에서 이미지를 한 장 가져와 메세지에 띄워줍니다. 세이브 파일의 용량 절약을 위해, 이미지는 디스크에 저장되지 않습니다. 원하지 않은 이미지를 볼 수 있으니 신중하게 결정하세요.");
+
+            if (Current.Game != null && ls.ButtonText("현재 게임에 적용"))
+            {
+                if (Current.Game.GetComponent<PostMan>() != null)
+                {
+                    Current.Game.GetComponent<PostMan>()._needToInitScraper = true;
+                    Messages.Message("적용되었습니다!", MessageTypeDefOf.NeutralEvent);
+                }
+            }
+
+
             if (ls.ButtonText("테스트 (누르고 기다리세요)"))
             {
-                var scraperTest = (Scraper)Activator.CreateInstance(ScraperType, GallaryName);
+                var scraperTest = Scraper.GetScraper();
                 Task.Factory.StartNew(async () =>
                 {
                     await scraperTest.ScrapePost();
@@ -150,20 +169,22 @@ namespace RWGallary
                 });
             }
 
-
-            ls.CheckboxLabeled("이미지 불러오기 (기본: X)", ref LoadImages, "글에서 이미지를 한 장 가져와 메세지에 띄워줍니다. 세이브 파일의 용량 절약을 위해, 이미지는 디스크에 저장되지 않습니다. 원하지 않은 이미지를 볼 수 있으니 신중하게 결정하세요.");
-
-            if (Current.Game != null && ls.ButtonText("현재 게임에 적용"))
-            {
-                if (Current.Game.GetComponent<PostMan>() != null)
-                {
-                    Current.Game.GetComponent<PostMan>()._needToInitScraper = true;
-                    Messages.Message("적용되었습니다!", MessageTypeDefOf.NeutralEvent);
-                }
-            }
-
             ls.End();
         }
+
+        private static void DrawDcInsideSettings(Listing_Standard ls)
+        {
+            ls.CheckboxLabeled("마이너 갤러리 (기본: O)", ref ScrapeMinorGallery, tooltip:"갤러리가 마이너 갤러리인지 정규 갤러리인지 구별합니다. O는 마이너 갤러리, X는 정규 갤러리를 의미합니다.");
+            ls.CheckboxLabeled("개념글만 가져오기 (기본: X)", ref ScrapeOnlyRecommend);
+            var textRect = ls.GetRect(Verse.Text.LineHeight);
+            GallaryName = Widgets.TextEntryLabeled(textRect, "갤러리 주소 (기본: rimworld): ",
+                GallaryName);
+            TooltipHandler.TipRegion(textRect,
+                (TipSignal)
+                "갤러리의 주소가 'https://gall.dcinside.com/mgallery/board/lists?id=rimworld' 라면 'rimworld'를 입력합니다. 여러 갤러리의 글을 가져오고 싶으면, 'rimworld,indiegame'와 같이 갤러리 주소들을 ','로 구분하여 입력합니다.");
+            ls.Gap(ls.verticalSpacing);
+        }
+
         private static void DoSettingsWindowContentsRight(Rect rect)
         {
             Listing_Standard ls = new Listing_Standard();
@@ -184,20 +205,12 @@ namespace RWGallary
             Widgets.IntRange(ls.GetRect(28f), 1357986, ref range, Prefs.DevMode ? 5 : 30, 60 * 60);
             (MinFrequency, MaxFrequency) = (range.min, range.max);
 
+            ls.CheckboxLabeled("처음 메세지는 1분 내로 도착 (기본: O)", ref EarlyFirstLetter,
+                tooltip:
+                "시간 간격이 너무 길면 이게 오긴 오는건가 생각이 들 수 있습니다. 이 옵션을 키면 게임을 처음 시작했을 때(로딩했을 때) 첫 메세지는 1분 내로 도착하게 됩니다.");
+
             ls.End();
         }
 
-        //private static void DrawDynamicGeneratedOption(Listing_Standard ls, string key)
-        //{
-        //    var token = key.Split('|');
-        //    switch (token[1].ToLower())
-        //    {
-        //        case "string":
-
-        //            ls.TextEntryLabeled($"RWGall_" + token[3], )
-        //            break;
-
-        //    }
-        //}
     }
 }

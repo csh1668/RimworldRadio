@@ -17,5 +17,17 @@ namespace RWGallary
         public abstract Tuple<string, string, string, Texture2D> PopUnloggedPost();
         public bool HasPost => _savedPost != null;
 
+
+        public static Scraper GetScraper()
+        {
+            if (Settings.ScraperType == typeof(Scraper_DcInside))
+            {
+                return new Scraper_DcInside(Settings.GallaryName, Settings.ScrapeMinorGallery,
+                    Settings.ScrapeOnlyRecommend);
+            }
+
+            Log.Error($"변방계 라디오: {Utils.GetCurStack()} => Can't create scraper.");
+            return null;
+        }
     }
 }
