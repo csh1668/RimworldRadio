@@ -7,11 +7,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using RimWorld;
+using RWGallary.DataTypes;
 using UnityEngine;
 using UnityEngine.Diagnostics;
 using Verse;
 using Verse.Sound;
 using static System.Net.Mime.MediaTypeNames;
+using Application = UnityEngine.Application;
 
 namespace RWGallary
 {
@@ -32,6 +34,7 @@ namespace RWGallary
         public static int MinFrequency = 60 * 10;
         public static int MaxFrequency = 60 * 20;
         public static string BaseLetterDefName = "NeutralEvent";
+
 
 
         private static readonly List<Type> Scrapers = new List<Type>();
@@ -156,20 +159,20 @@ namespace RWGallary
             if (ls.ButtonText("테스트 (누르고 기다리세요)"))
             {
                 var scraperTest = Scraper.GetScraper();
-                Task.Factory.StartNew(async () =>
+                Task.Factory.StartNew(() =>
                 {
-                    await scraperTest.ScrapePost();
-                    if (scraperTest.HasPost)
+                    scraperTest.ScrapePost();
+                    if (scraperTest.TryGetPost(out Post result))
                     {
-                        var result = scraperTest.PopUnloggedPost();
-                        SteamUtility.OpenUrl(result.Item3);
-                        Log.Message($"변방계 라디오: 테스트 결과 :: title={result.Item1}|context={result.Item2}|hasImage={result.Item4}");
+                        Application.OpenURL(result.SourceUrl);
+                        Log.Message($"변방계 라디오: 테스트 결과 :: title={result.Title}|content={result.Content}|hasImage={result.Image}");
                     }
                     else
                     {
                         Log.Message("변방계 라디오: 테스트 결과 :: 글을 가져오는데 실패했습니다. 설정 확인 후 다시 해주세요.");
                     }
                     Log.TryOpenLogWindow();
+                    return Task.CompletedTask;
                 });
             }
 

@@ -19,5 +19,10 @@ namespace RWGallary.DataTypes
         {
             this.Id = id;
         }
+
+        public Post(int id, string sourceUrl) : this(id)
+        {
+            this.SourceUrl = sourceUrl;
+        }
     }
 }

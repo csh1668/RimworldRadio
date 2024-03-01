@@ -20,7 +20,7 @@ namespace RWGallary
                 DiaOption openUrl = new DiaOption("원문 보기");
                 openUrl.action = () =>
                 {
-                    SteamUtility.OpenUrl(sourceUrl);
+                    Application.OpenURL(sourceUrl);
                     if (!Find.TickManager.Paused)
                         Find.TickManager.Pause();
                 };

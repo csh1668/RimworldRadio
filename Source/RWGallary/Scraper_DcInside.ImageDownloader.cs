@@ -30,6 +30,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using RimWorld;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -39,8 +40,10 @@ namespace RWGallary
 {
     public partial class Scraper_DcInside
     {
-        protected static async Task<Texture2D> DownloadImage(string url)
+        
+        protected static Texture2D DownloadImage(string url)
         {
+            // 다운로드 받아서 임시 폴더에 저장하기 => 임시 폴더에 저장된 이미지를 다시 불러오기
             try
             {
                 var tmpImagePath = Path.GetTempPath();
@@ -73,12 +76,12 @@ namespace RWGallary
                     var asyncOperation = textureRequest.SendWebRequest();
                     while (!asyncOperation.isDone)
                     {
-                        await Task.Delay(200);
+                        Task.Delay(200);
                     }
                     if (textureRequest.isNetworkError || textureRequest.isHttpError)
                     {
                         Log.Message($"변방계 라디오: Error on {Utils.GetCurStack()} => Image from {tmpImagePath}:{textureRequest.error}");
-                        await Task.Delay(1000);
+                        Task.Delay(10000);
                     }
                     else
                     {

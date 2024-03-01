@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using HtmlAgilityPack;
 using RimWorld;
+using RWGallary.DataTypes;
 using UnityEngine;
 using UnityEngine.Networking;
 using Verse;
@@ -28,11 +29,13 @@ namespace RWGallary
 
         internal string _listUrl;
         internal string _postUrl;
-        protected List<string> _gallaryNames = new List<string>();
+        protected readonly List<string> _galleryNames = new List<string>();
+        protected readonly List<int> usedPosts = new List<int>();
         protected readonly bool _onlyRecommend;
         protected readonly bool _isMinor;
 
-        protected int idx;
+        protected int galleryPickerIdx;
+        protected Post _savedPost;
 
         protected virtual string ListUrl
         {
@@ -41,110 +44,111 @@ namespace RWGallary
                 if (_isMinor)
                 {
                     if (_onlyRecommend)
-                        return string.Format(listUrlMinorFormat, GallaryName) + postfixRecommend;
+                        return string.Format(listUrlMinorFormat, GalleryName) + postfixRecommend;
                     else
-                        return string.Format(listUrlMinorFormat, GallaryName);
+                        return string.Format(listUrlMinorFormat, GalleryName);
                 }
                 else
                 {
                     if (_onlyRecommend)
-                        return string.Format(listUrlRegularFormat, GallaryName) + postfixRecommend;
+                        return string.Format(listUrlRegularFormat, GalleryName) + postfixRecommend;
                     else
-                        return string.Format(listUrlRegularFormat, GallaryName);
+                        return string.Format(listUrlRegularFormat, GalleryName);
                 }
             }
         }
 
-        protected virtual string GallaryName
+        protected virtual string GalleryName
         {
             get
             {
-                if (idx == -1)
-                    idx = Rand.Range(0, _gallaryNames.Count);
-                return _gallaryNames[idx];
+                if (galleryPickerIdx == -1)
+                    galleryPickerIdx = Rand.Range(0, _galleryNames.Count);
+                return _galleryNames[galleryPickerIdx];
             }
         }
 
-        public Scraper_DcInside(string gallaryNames, bool isMinor, bool onlyRecommend)
+        public Scraper_DcInside(string galleryNames, bool isMinor, bool onlyRecommend)
         {
-            idx = -1;
-            _gallaryNames.AddRange(gallaryNames.Split(',').Select(x => x.Trim()));
+            galleryPickerIdx = -1;
+            _galleryNames.AddRange(galleryNames.Split(',').Select(x => x.Trim()));
             _isMinor = isMinor;
             _onlyRecommend = onlyRecommend;
-            _listUrl = "https://gall.dcinside.com/mgallery/board/lists/?id=" + gallaryNames;
+            _listUrl = "https://gall.dcinside.com/mgallery/board/lists/?id=" + galleryNames;
         }
 
-        protected static string GetRandomUserAgent()
+        protected static string RandomUserAgent
         {
-            string[] userAgents =
+            get
             {
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/84.0 Safari/537.36",
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36"
-            };
-            return userAgents[UnityEngine.Random.Range(0, userAgents.Length)];
+                string[] userAgents =
+                {
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/84.0 Safari/537.36",
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36"
+                };
+                return userAgents[UnityEngine.Random.Range(0, userAgents.Length)];
+            }
         }
 
-        public override async Task ScrapePost()
+        public override void ScrapePost()
         {
             IsScraping = true;
-            idx = -1;
+            galleryPickerIdx = -1;
 
             int targetPostNum = -1;
-            string title = null, context = null;
+            Post post;
             Texture2D t = null;
             using (UnityWebRequest request = UnityWebRequest.Get(ListUrl))
             {
-                request.SetRequestHeader("User-Agent", GetRandomUserAgent());
+                request.SetRequestHeader("User-Agent", RandomUserAgent);
                 var asyncOperation = request.SendWebRequest();
                 while (!asyncOperation.isDone)
                 {
-                    await Task.Delay(100);
+                    Task.Delay(100);
                 }
 
                 if (request.isNetworkError || request.isHttpError)
                 {
                     Log.Message($"변방계 라디오: Error on {Utils.GetCurStack()} => {ListUrl}:{request.error}");
-                    await Task.Delay(1000);
+                    Task.Delay(10000);
+                    IsScraping = false;
                     return;
                 }
-                else
-                {
-                    string response = request.downloadHandler.text;
-                    targetPostNum = await ParseTargetPostNum(response);
 
-                }
+                string response = request.downloadHandler.text;
+                targetPostNum = ParseTargetPostNum(response);
             }
 
-            _postUrl = string.Format(_isMinor ? postUrlMinorFormat : postUrlRegularFormat, GallaryName, targetPostNum);
-            var imageUrl = string.Empty;
+            _postUrl = string.Format(_isMinor ? postUrlMinorFormat : postUrlRegularFormat, GalleryName, targetPostNum);
+            string imageUrl;
             if (targetPostNum != -1)
             {
                 using (UnityWebRequest request = UnityWebRequest.Get(_postUrl))
                 {
-                    request.SetRequestHeader("User-Agent", GetRandomUserAgent());
+                    request.SetRequestHeader("User-Agent", RandomUserAgent);
                     var asyncOperation = request.SendWebRequest();
                     while (!asyncOperation.isDone)
                     {
-                        await Task.Delay(100);
+                        Task.Delay(100);
                     }
 
                     if (request.isNetworkError || request.isHttpError)
                     {
                         Log.Message($"변방계 라디오: Error on {Utils.GetCurStack()} => {_postUrl}:{request.error}");
-                        await Task.Delay(1000);
+                        Task.Delay(1000);
+                        IsScraping = false;
                         return;
                     }
                     else
                     {
                         string response = request.downloadHandler.text;
-                        var tuple =  await ParsePost(response, out imageUrl);
-                        if (tuple != null)
-                            (title, context) = tuple;
+                        post = new Post(targetPostNum, _postUrl);
+                        ParsePost(post, response, out imageUrl);
                     }
                 }
 
-                var comments = await GetComments(GallaryName, targetPostNum.ToString());
+                var comments = GetComments(GalleryName, targetPostNum.ToString());
                 if (comments?.Count > 0)
                 {
                     var sb = new StringBuilder();
@@ -153,29 +157,35 @@ namespace RWGallary
                     {
                         sb.AppendLine(comment);
                     }
-                    context += sb.ToString();
+                    post.Content += sb.ToString();
                 }
+            }
+            else
+            {
+                Log.Message($"변방계 라디오: Error on {Utils.GetCurStack()} => targetPostNum was -1.");
+                IsScraping = false;
+                return;
             }
 
             if (Settings.LoadImages && !string.IsNullOrEmpty(imageUrl))
             {
-                t = await DownloadImage(imageUrl);
+                post.Image = DownloadImage(imageUrl);
             }
 
-            if (title != null && context != null)
+            if (post.Title != null && post.Content != null)
             {
-                _savedPost = new Tuple<string, string, string, Texture2D>(title, context, _postUrl, t);
+                _savedPost = post;
             }
             else
             {
                 Log.Message(
-                    $"변방계 라디오: on {Utils.GetCurStack()} => {_postUrl} has no title or context, returns no post");
+                    $"변방계 라디오: Error on {Utils.GetCurStack()} => {_postUrl} has no title or context, returns no post");
             }
 
             IsScraping = false;
         }
 
-        protected Task<int> ParseTargetPostNum(string response)
+        protected int ParseTargetPostNum(string response)
         {
             // //*[@id="container"]/section[1]/article[2]/div[2]/table/tbody/tr[10]
             try
@@ -195,18 +205,18 @@ namespace RWGallary
                         }
                     }
                 }
-                var pick = posts.Except(_loggedPostIndices).RandomElement();
-                _loggedPostIndices.Add(pick);
-                return Task.FromResult(pick);
+                var pick = posts.Except(usedPosts).RandomElement();
+                usedPosts.Add(pick);
+                return pick;
             }
             catch (Exception e)
             {
                 Log.Warning($"변방계 라디오: Error on {Utils.GetCurStack()} => " + e.Message);
             }
 
-            return Task.FromResult(-1);
+            return -1;
         }
-        protected Task<Tuple<string, string>> ParsePost(string response, out string imageUrl)
+        protected void ParsePost(Post outPost, string response, out string imageUrl)
         {
             imageUrl = string.Empty;
 
@@ -238,18 +248,16 @@ namespace RWGallary
                     }
                 }
 
-                var context = sb.ToString().Trim();//WebUtility.HtmlDecode(sb.ToString().Trim());
-                context = WebUtility.HtmlDecode(context);
+                var content = sb.ToString().Trim();//WebUtility.HtmlDecode(sb.ToString().Trim());
+                content = WebUtility.HtmlDecode(content);
 
-                if (!string.IsNullOrEmpty(context) || !string.IsNullOrEmpty(title))
-                    return Task.FromResult(new Tuple<string, string>(title, context));
+                outPost.Title = title;
+                outPost.Content = content;
             }
             catch (Exception e)
             {
                 Log.Warning($"변방계 라디오: Error on {Utils.GetCurStack()} => " + e.Message);
             }
-
-            return Task.FromResult((Tuple<string, string>)null);
         }
 
         protected static IEnumerable<HtmlNode> GetDescendantNodes(HtmlNode parent, int level = 0)
@@ -268,11 +276,14 @@ namespace RWGallary
             }
         }
 
-        public override Tuple<string, string, string, Texture2D> PopUnloggedPost()
+        public override bool TryGetPost(out Post outPost)
         {
-            var result = _savedPost;
+            outPost = null;
+            if (IsScraping)
+                return false;
+            outPost = _savedPost;
             _savedPost = null;
-            return result;
+            return outPost != null;
         }
     }
 }

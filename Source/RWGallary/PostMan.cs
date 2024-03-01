@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using RWGallary.DataTypes;
 using UnityEngine;
 using Verse;
 
@@ -75,11 +76,12 @@ namespace RWGallary
             _isProcessingThreadedWork = true;
 
             Tuple<string, string, string, Texture2D> tuple;
-            if (_scraper.HasPost && (tuple = _scraper.PopUnloggedPost()) != null)
+            if (_scraper.TryGetPost(out Post post))
             {
-                var (title, context, sourceUrl, image) = tuple;
+                var (title, content, sourceUrl, image) = (post.Title, post.Content, post.SourceUrl, post.Image);
+
                 var letterLabel = title.Length > 20 ? title.Substring(0, 17) + "..." : title;
-                var letterText = $"<color=#3399FF>{title}</color>\n\n" + context;
+                var letterText = $"<color=#3399FF>{title}</color>\n\n" + content;
                 var letter =
                     CustomLetter.MakeLetter(letterLabel, letterText, sourceUrl, 
                         DefDatabase<LetterDef>.GetNamedSilentFail(Settings.BaseLetterDefName) ?? LetterDefOf.NeutralEvent, image);
@@ -87,9 +89,9 @@ namespace RWGallary
 
                 await Task.Delay(100);
             }
-            else if (!_scraper.HasPost && !_scraper.IsScraping)
+            else if (!_scraper.IsScraping)
             {
-                await _scraper.ScrapePost();
+                _scraper.ScrapePost();
             }
 
             _isProcessingThreadedWork = false;
@@ -124,7 +126,7 @@ namespace RWGallary
         //        Log.Message(Current.Game.GetComponent<PostMan>()?._letter.ToString());
         //        Tuple<string, string> tuple;
         //        if (_scraper.HasPost && Current.Game.GetComponent<PostMan>()?._letter != null &&
-        //            (tuple = _scraper.PopUnloggedPost()) != null)
+        //            (tuple = _scraper.TryGetPost()) != null)
         //        {
         //            Log.Message("asdasd");
         //            var (letterLabel, letterText) = tuple;

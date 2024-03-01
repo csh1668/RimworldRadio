@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using RWGallary.DataTypes;
 using UnityEngine;
 using Verse;
 
@@ -10,12 +11,9 @@ namespace RWGallary
 {
     public abstract class Scraper
     {
-        protected HashSet<int> _loggedPostIndices = new HashSet<int>();
-        protected Tuple<string, string, string, Texture2D> _savedPost;
         public bool IsScraping { get; protected set; }
-        public abstract Task ScrapePost();
-        public abstract Tuple<string, string, string, Texture2D> PopUnloggedPost();
-        public bool HasPost => _savedPost != null;
+        public abstract void ScrapePost();
+        public abstract bool TryGetPost(out Post post);
 
 
         public static Scraper GetScraper()
@@ -26,7 +24,6 @@ namespace RWGallary
                     Settings.ScrapeOnlyRecommend);
             }
 
-            Log.Error($"변방계 라디오: {Utils.GetCurStack()} => Can't create scraper.");
             return null;
         }
     }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RimWorld;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,7 +14,7 @@ namespace RWGallary
 {
     public partial class Scraper_DcInside
     {
-        protected static async Task<List<string>> GetComments(string id, string no, int maxCount = 20)
+        protected static List<string> GetComments(string id, string no, int maxCount = 20)
         {
             try
             {
@@ -30,12 +31,12 @@ namespace RWGallary
                     var asyncOperation = request.SendWebRequest();
                     while (!asyncOperation.isDone)
                     {
-                        await Task.Delay(100);
+                        Task.Delay(100);
                     }
                     if (request.isNetworkError || request.isHttpError)
                     {
                         Log.Message($"변방계 라디오: Error on {Utils.GetCurStack()} => {id},{no}:{request.error}");
-                        await Task.Delay(1000);
+                        Task.Delay(10000);
                     }
                     else
                     {
@@ -69,6 +70,7 @@ namespace RWGallary
             }
             catch (Exception ex)
             {
+                Log.Message($"변방계 라디오: Error on {Utils.GetCurStack()} => {id},{no}:{ex.Message}");
             }
 
             return null;
