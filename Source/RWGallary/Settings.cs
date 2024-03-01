@@ -10,6 +10,7 @@ using RimWorld;
 using UnityEngine;
 using UnityEngine.Diagnostics;
 using Verse;
+using Verse.Sound;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace RWGallary
@@ -30,9 +31,11 @@ namespace RWGallary
         public static bool EarlyFirstLetter = true;
         public static int MinFrequency = 60 * 10;
         public static int MaxFrequency = 60 * 20;
+        public static string BaseLetterDefName = "NeutralEvent";
 
 
-        private static List<Type> Scrapers = new List<Type>();
+        private static readonly List<Type> Scrapers = new List<Type>();
+        private static readonly List<LetterDef> LetterDefsCached = new List<LetterDef>();
 
         public override void ExposeData()
         {
@@ -74,6 +77,7 @@ namespace RWGallary
             Scribe_Values.Look(ref EarlyFirstLetter, "RWGall_EarlyFirstLetter", true);
             Scribe_Values.Look(ref MinFrequency, "RWGall_MinFrequency", 60 * 10);
             Scribe_Values.Look(ref MaxFrequency, "RWGall_MaxFrequency", 60 * 20);
+            Scribe_Values.Look(ref BaseLetterDefName, "RWGall_BaseLetterDefName", "NeutralEvent");
         }
 
         public static void InitSettings()
@@ -207,7 +211,24 @@ namespace RWGallary
 
             ls.CheckboxLabeled("처음 메세지는 1분 내로 도착 (기본: O)", ref EarlyFirstLetter,
                 tooltip:
-                "시간 간격이 너무 길면 이게 오긴 오는건가 생각이 들 수 있습니다. 이 옵션을 키면 게임을 처음 시작했을 때(로딩했을 때) 첫 메세지는 1분 내로 도착하게 됩니다.");
+                "시간 간격이 너무 길면 이게 오긴 하는건지 생각이 들 수 있습니다. 이 옵션을 키면 게임을 처음 시작했을 때(로딩했을 때) 첫 메세지는 1분 내로 도착하게 됩니다.");
+
+            ls.Label("LetterDef 선택 (기본: NeutralEvent): ", tooltip: "이 모드가 보내주는 편지의 종류를 정합니다. 즉, 인게임에서 우측에 뜨는 메세지의 스타일을 정합니다. 선택 시 그에 해당하는 사운드가 재생됩니다.");
+            if (Widgets.ButtonText(ls.GetRect(28f),
+                    BaseLetterDefName))
+            {
+                var list = new List<LetterDef>
+                {
+                    LetterDefOf.NeutralEvent, LetterDefOf.PositiveEvent, LetterDefOf.NegativeEvent,
+                    LetterDefOf.ThreatSmall, LetterDefOf.ThreatBig
+                }.Select(x =>
+                    new FloatMenuOption(x.defName, () =>
+                    {
+                        BaseLetterDefName = x.defName;
+                        x.arriveSound.PlayOneShotOnCamera();
+                    })).ToList();
+                Find.WindowStack.Add(new FloatMenu(list));
+            }
 
             ls.End();
         }

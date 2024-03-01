@@ -216,11 +216,13 @@ namespace RWGallary
                 doc.LoadHtml(response);
                 var title = doc.DocumentNode.SelectSingleNode("//span[@class='title_headtext']").InnerText;
                 title += " " + doc.DocumentNode.SelectSingleNode("//span[@class='title_subject']").InnerText;
-                //title = WebUtility.HtmlDecode(title);
+                title = WebUtility.HtmlDecode(title);
 
                 var sb = new StringBuilder();
                 foreach (var node in GetDescendantNodes(doc.DocumentNode.SelectSingleNode("//div[@class='write_div']")))
                 {
+                    if (node.Name == "br")
+                        sb.AppendLine();
                     if (node.NodeType == HtmlNodeType.Text)
                         sb.AppendLine(node.GetDirectInnerText());
 

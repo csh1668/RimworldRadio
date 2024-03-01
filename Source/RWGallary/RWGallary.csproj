@@ -83,6 +83,7 @@
     <Compile Include="CustomLetter.cs" />
     <Compile Include="Dialog_NodeTreeWithImage.cs" />
     <Compile Include="Patches.cs" />
+    <Compile Include="DataTypes\Post.cs" />
     <Compile Include="PostMan.cs" />
     <Compile Include="Mod.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -97,5 +98,6 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

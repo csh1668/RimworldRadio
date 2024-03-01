@@ -66,6 +66,12 @@ namespace RWGallary
             Rect outRect = new Rect(0f, 0f, rect.width, rect.height - num);
 
             float width = rect.width - 16f;
+
+            // 이미지를 여러개 표시하는 방법
+            // text에 이미지를 넣는 위치 정보를 넣는다 => {image} 이런 식으로
+            // 이미지를 여러 개 전달한다
+            // 
+
             Rect rectTexture = new Rect(0.0f, 0.0f, (image?.width ?? 0f), (image?.height ?? 0f));
             if (image != null)
             {
