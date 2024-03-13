@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace RWGallary
 {
-    public class ScraperDescriptionAttribute : Attribute
+    public class DescriptionAttribute : Attribute
     {
         public string description;
 
-        public ScraperDescriptionAttribute(string desc)
+        public DescriptionAttribute(string desc)
         {
             description = desc;
         }

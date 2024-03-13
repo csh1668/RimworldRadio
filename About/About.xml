@@ -4,6 +4,7 @@
   <author>SeoHyeon</author>
   <supportedVersions>
     <li>1.4</li>
+    <li>1.5</li>
   </supportedVersions>
   <description>Original mod: Reddit by Sincere\n우주 각지 변방계의 최신 소식을 인게임에서 받아볼 수 있습니다.\n\n(일정 주기마다 림월드 마이너 갤러리의 글을 퍼와서 메세지(편지)를 띄워줍니다)</description>
   <packageId>seohyeon.RWGallary</packageId>

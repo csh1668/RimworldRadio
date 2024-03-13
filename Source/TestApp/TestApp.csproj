@@ -8,7 +8,19 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="C:\Users\조서현\.nuget\packages\dynamicweb.webp\3.0.0\build\libwebp_x64.dll" />
+    <None Remove="C:\Users\조서현\.nuget\packages\dynamicweb.webp\3.0.0\build\libwebp_x86.dll" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dynamicweb.WebP" Version="3.0.0" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.54" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="libwebp.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

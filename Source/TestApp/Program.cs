@@ -9,64 +9,118 @@ using System.Web;
 using System.Xml;
 using HtmlAgilityPack;
 using static System.Net.WebRequestMethods;
+using File = System.IO.File;
 
 namespace TestApp
 {
     using System;
+    using System.Runtime.InteropServices;
     using System.Threading.Tasks;
-
-    abstract class Scraper
-    {
-        public abstract Task Method();
-    }
-
-    class Scraper_A : Scraper
-    {
-        public override async Task Method()
-        {
-            Console.WriteLine("Scraper_A's Method");
-            await Task.Delay(1000); // 비동기적인 작업 예시 (1초 대기)
-        }
-    }
-
-    class Scraper_B : Scraper_A
-    {
-        public override async Task Method()
-        {
-            Console.WriteLine("Scraper_B's Method");
-            await base.Method(); // 비동기적인 작업 예시 (1초 대기)
-        }
-    }
     internal class Program
     {
+        [DllImport("libwebp.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int WebPGetInfo(IntPtr data, int size, out int width, out int height);
+
+        [DllImport("libwebp.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int WebPDecodeRGBAInto(IntPtr data, int size, byte[] outputBuffer, int outputBufferSize, int outputStride);
+
         static void Main(string[] args)
         {
-            string str = string.Empty;
-            using (WebClient wc = new WebClient())
-            {
-                str = wc.DownloadString(
-                    "https://gall.dcinside.com/mgallery/board/view/?id=rimworld&no=459407&exception_mode=recommend&page=1");
-            }
+            // Load WebP file into byte array
+            byte[] webpData = File.ReadAllBytes("C:\\Games\\input.webp");
 
-            var doc = new HtmlDocument();
-            doc.LoadHtml(str);
+            // Get WebP image info
+            int width, height;
+            WebPGetInfo(Marshal.UnsafeAddrOfPinnedArrayElement(webpData, 0), webpData.Length, out width, out height);
+            Console.WriteLine($"{width},{height}");
 
-            var sb = new StringBuilder();
-            foreach (var node in GetDescendantNodes(doc.DocumentNode.SelectSingleNode("//div[@class='write_div']")))
+            // Calculate output buffer size
+            int outputBufferSize = width * height * 4; // 4 bytes per pixel (RGBA)
+
+            // Allocate buffer for decoded RGBA data
+            byte[] rgbaData = new byte[outputBufferSize];
+
+            // Decode WebP image into RGBA buffer
+            WebPDecodeRGBAInto(Marshal.UnsafeAddrOfPinnedArrayElement(webpData, 0), webpData.Length, rgbaData, outputBufferSize, width * 4);
+
+            
+        }
+
+        // Function to calculate CRC (Cyclic Redundancy Check)
+        static uint CalculateCRC(params byte[][] data)
+        {
+            uint crc = 0xffffffff;
+            foreach (byte[] chunk in data)
             {
-                if (node.Name == "br")
-                    sb.AppendLine();
-                if (node.NodeType == HtmlNodeType.Text)
+                foreach (byte b in chunk)
                 {
-                    sb.AppendLine(node.GetDirectInnerText());
-                    
+                    crc ^= b;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        uint mask = (uint)-(crc & 1);
+                        crc = (crc >> 1) ^ (0xedb88320 & mask);
+                    }
                 }
             }
+            return ~crc;
+        }
+        //var content = Request(string.Format(urlFormat, "azurlane", "100648441"));
+        //Console.WriteLine(content);
+        //var url =
+        //    "//ac-p3.namu.la/20240306sac/70740c5179758f5d4df9e3cb9f9f0928f0df6f50fb6bb3a0921adb10a97d4100.png?expires=1709735528&key=k5Wski-18NA_Z6N8fNqodg&type=orig";
+        //var tmpImagePath = Path.GetTempPath();
+        //var request = WebRequest.Create("http://" + url.Substring(2));
+        //using (WebResponse resp = request.GetResponse())
+        //{
+        //    var filename = $"test.{resp.ContentType.Split('/').Last()}";
+        //    tmpImagePath = Path.Combine(tmpImagePath, filename);
+        //    Console.WriteLine(tmpImagePath);
+        //    var buff = new byte[1024];
+        //    int pos = 0;
+        //    int count;
+        //    using (Stream stream = resp.GetResponseStream())
+        //    {
+        //        using (var fs = new FileStream(tmpImagePath, FileMode.Create))
+        //        {
+        //            do
+        //            {
+        //                count = stream.Read(buff, pos, buff.Length);
+        //                fs.Write(buff, 0, count);
+        //            } while (count > 0);
+        //        }
+        //    }
+        //}
 
-            var context = sb.ToString().Trim();//WebUtility.HtmlDecode(sb.ToString().Trim());
-            context = WebUtility.HtmlDecode(context);
+        static string Request(string url, Dictionary<string, string> parameters = null)
+        {
+            if (parameters == null)
+                parameters = new Dictionary<string, string>();
 
-            Console.WriteLine(context);
+            string queryParams = "";
+            var paramsList = parameters.ToList();
+            for (int i = 0; i < paramsList.Count; i++)
+            {
+                queryParams += i == 0 ? "?" : "&";
+                queryParams += paramsList[i].Key + "=" + paramsList[i].Value;
+            }
+
+            url += queryParams;
+
+            try
+            {
+                using (HttpClient httpClient = new HttpClient())
+                {
+                    httpClient.DefaultRequestHeaders.Add("user-agent", "live.arca.android/0.8.378");
+                    var response = httpClient.GetAsync(url).Result;
+                    return response.Content.ReadAsStringAsync().Result;
+                }
+            }
+            catch (Exception e)
+            {
+                throw;
+            }
+
+            return null;
         }
 
         static IEnumerable<HtmlNode> GetDescendantNodes(HtmlNode parent, int level = 0)

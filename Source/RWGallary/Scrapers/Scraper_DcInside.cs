@@ -14,10 +14,10 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Verse;
 
-namespace RWGallary
+namespace RWGallary.Scrapers
 {
 
-    [ScraperDescription("디시인사이드")]
+    [Description("디시인사이드")]
     public partial class Scraper_DcInside : Scraper
     {
         protected const string imageUrlFormat = "https://image.dcinside.com/viewimage.php?{0}";
@@ -96,9 +96,8 @@ namespace RWGallary
             IsScraping = true;
             galleryPickerIdx = -1;
 
-            int targetPostNum = -1;
+            int targetPostNum;
             Post post;
-            Texture2D t = null;
             using (UnityWebRequest request = UnityWebRequest.Get(ListUrl))
             {
                 request.SetRequestHeader("User-Agent", RandomUserAgent);
@@ -284,6 +283,69 @@ namespace RWGallary
             outPost = _savedPost;
             _savedPost = null;
             return outPost != null;
+        }
+
+
+        public static Texture2D DownloadImage(string url)
+        {
+            // 다운로드 받아서 임시 폴더에 저장하기 => 임시 폴더에 저장된 이미지를 다시 불러오기
+            try
+            {
+                var tmpImagePath = Path.GetTempPath();
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+                request.Referer = url;
+                using (WebResponse resp = request.GetResponse())
+                {
+                    var filename = resp.Headers["Content-Disposition"];
+                    tmpImagePath = Path.Combine(tmpImagePath, filename);
+                    var buff = new byte[1024];
+                    int pos = 0;
+                    int count;
+                    using (Stream stream = resp.GetResponseStream())
+                    {
+                        if (stream == null) return null;
+                        using (var fs = new FileStream(tmpImagePath, FileMode.Create))
+                        {
+                            do
+                            {
+                                count = stream.Read(buff, pos, buff.Length);
+                                fs.Write(buff, 0, count);
+                            } while (count > 0);
+                        }
+                        Log.Message(tmpImagePath);
+
+                    }
+                }
+                Texture2D t = null;
+                using (var textureRequest = UnityWebRequestTexture.GetTexture(tmpImagePath))
+                {
+                    var asyncOperation = textureRequest.SendWebRequest();
+                    while (!asyncOperation.isDone)
+                    {
+                        Task.Delay(200);
+                    }
+                    if (textureRequest.isNetworkError || textureRequest.isHttpError)
+                    {
+                        Log.Message($"변방계 라디오: Error on {Utils.GetCurStack()} => Image from {tmpImagePath}:{textureRequest.error}");
+                        Task.Delay(10000);
+                    }
+                    else
+                    {
+                        t = DownloadHandlerTexture.GetContent(textureRequest);
+                    }
+                }
+
+                if (File.Exists(tmpImagePath))
+                    File.Delete(tmpImagePath);
+
+                return t;
+            }
+            catch (Exception e)
+            {
+                Log.Message($"변방계 라디오: Error on {Utils.GetCurStack()} => {e.Message}");
+            }
+
+            return null;
         }
     }
 }

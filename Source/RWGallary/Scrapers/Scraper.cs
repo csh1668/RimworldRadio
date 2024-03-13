@@ -7,7 +7,7 @@ using RWGallary.DataTypes;
 using UnityEngine;
 using Verse;
 
-namespace RWGallary
+namespace RWGallary.Scrapers
 {
     public abstract class Scraper
     {
@@ -23,6 +23,9 @@ namespace RWGallary
                 return new Scraper_DcInside(Settings.GallaryName, Settings.ScrapeMinorGallery,
                     Settings.ScrapeOnlyRecommend);
             }
+
+            if (Settings.ScraperType == typeof(Scraper_ArcaLive))
+                return new Scraper_ArcaLive(Settings.GallaryName, Settings.SfwMode, Settings.ScrapeOnlyRecommend);
 
             return null;
         }

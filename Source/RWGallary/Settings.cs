@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using RimWorld;
 using RWGallary.DataTypes;
+using RWGallary.Scrapers;
 using UnityEngine;
 using UnityEngine.Diagnostics;
 using Verse;
@@ -29,14 +30,13 @@ namespace RWGallary
         public static bool ScrapeOnlyRecommend = false;
         public static bool ScrapeMinorGallery = true;
 
+        public static bool SfwMode = true;
+
         public static bool PauseWhenOpenMessage = false;
         public static bool EarlyFirstLetter = true;
         public static int MinFrequency = 60 * 10;
         public static int MaxFrequency = 60 * 20;
         public static string BaseLetterDefName = "NeutralEvent";
-
-
-
         private static readonly List<Type> Scrapers = new List<Type>();
         private static readonly List<LetterDef> LetterDefsCached = new List<LetterDef>();
 
@@ -51,6 +51,8 @@ namespace RWGallary
             Scribe_Values.Look(ref LoadImages, "RWGall_LoadImages", false);
             Scribe_Values.Look(ref ScrapeOnlyRecommend, "RWGall_ScrapeOnlyRecommend", false);
             Scribe_Values.Look(ref ScrapeMinorGallery, "RWGall_ScrapeMinorGallery", true);
+
+            Scribe_Values.Look(ref SfwMode, "RWGall_SfwMode", true);
 
             var scraperTypeTmp = (string)ScraperType.Name.Clone();
             Scribe_Values.Look(ref scraperTypeTmp, "RWGall_ScraperTypeName", "Scraper_DcInside");
@@ -130,11 +132,11 @@ namespace RWGallary
             ls.Label("스크래핑 설정");
             ls.Label("스크래핑 모듈 선택 (기본: 디시인사이드): ", tooltip:"글을 퍼오는 곳을 정합니다.");
             if (Widgets.ButtonText(ls.GetRect(28f), 
-                    ScraperType.GetCustomAttribute<ScraperDescriptionAttribute>()?.description ?? ScraperType.Name))
+                    ScraperType.GetCustomAttribute<DescriptionAttribute>()?.description ?? ScraperType.Name))
             {
                 var list = Scrapers.Select(current =>
                     new FloatMenuOption(
-                        current.GetCustomAttribute<ScraperDescriptionAttribute>()?.description ?? ScraperType.Name,
+                        current.GetCustomAttribute<DescriptionAttribute>()?.description ?? ScraperType.Name,
                         () =>
                         {
                             ScraperType = current;
@@ -142,7 +144,10 @@ namespace RWGallary
                 Find.WindowStack.Add(new FloatMenu(list));
             }
 
-            DrawDcInsideSettings(ls);
+            if (ScraperType == typeof(Scraper_DcInside))
+                DrawDcInsideSettings(ls);
+            else if (ScraperType == typeof(Scraper_ArcaLive))
+                DrawArcaLiveSettings(ls);
 
             ls.CheckboxLabeled("이미지 불러오기 (기본: X)", ref LoadImages, "글에서 이미지를 한 장 가져와 메세지에 띄워줍니다. 세이브 파일의 용량 절약을 위해, 이미지는 디스크에 저장되지 않습니다. 원하지 않은 이미지를 볼 수 있으니 신중하게 결정하세요.");
 
@@ -177,6 +182,20 @@ namespace RWGallary
             }
 
             ls.End();
+        }
+
+        private static void DrawArcaLiveSettings(Listing_Standard ls)
+        {
+            ls.CheckboxLabeled("SFW 모드 (기본: O)", ref SfwMode, tooltip: "안전한 글만 가져옵니다.");
+            ls.CheckboxLabeled("개념글만 가져오기 (기본: X)", ref ScrapeOnlyRecommend);
+            var textRect = ls.GetRect(Verse.Text.LineHeight);
+            GallaryName = Widgets.TextEntryLabeled(textRect, "채널 주소 (기본: rimworld): ",
+                GallaryName);
+            TooltipHandler.TipRegion(textRect,
+                (TipSignal)
+                "채널의 주소가 'https://arca.live/b/rimworld' 라면 'rimworld'를 입력합니다. 여러 채널의 글을 가져오고 싶으면, 'rimworld,programming'와 같이 갤러리 주소들을 ','로 구분하여 입력합니다." +
+                " 특정 카테고리의 글만 가져오고 싶다면 'rimworld?category=질문'와 같이 입력합니다. 이때 주소창에서 보이는 카테고리 이름을 입력해야 합니다.");
+            ls.Gap(ls.verticalSpacing);
         }
 
         private static void DrawDcInsideSettings(Listing_Standard ls)

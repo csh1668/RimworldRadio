@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using RWGallary.DataTypes;
+using RWGallary.Scrapers;
 using UnityEngine;
 using Verse;
 
@@ -75,7 +76,6 @@ namespace RWGallary
         {
             _isProcessingThreadedWork = true;
 
-            Tuple<string, string, string, Texture2D> tuple;
             if (_scraper.TryGetPost(out Post post))
             {
                 var (title, content, sourceUrl, image) = (post.Title, post.Content, post.SourceUrl, post.Image);

@@ -10,7 +10,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Verse;
 
-namespace RWGallary
+namespace RWGallary.Scrapers
 {
     public partial class Scraper_DcInside
     {
